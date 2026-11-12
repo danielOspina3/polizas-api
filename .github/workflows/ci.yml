@@ -45,7 +45,7 @@ jobs:
           revisar 200 -H "$KEY" "http://localhost:8080/polizas?tipo=COLECTIVA&estado=ACTIVA"
           revisar 200 -H "$KEY" http://localhost:8080/polizas/2/riesgos
           revisar 200 -X POST -H "$KEY" http://localhost:8080/polizas/1/renovar
-          grep -q '"canonMensual":1578000' respuesta.json
+          grep -q '"canonMensual":1578000.00' respuesta.json
           revisar 422 -X POST -H "$KEY" -H "Content-Type: application/json" \
             -d '{"direccionInmueble":"Calle 1","arrendatario":"Juan","arrendador":"Pedro","canonMensual":1000000}' \
             http://localhost:8080/polizas/1/riesgos

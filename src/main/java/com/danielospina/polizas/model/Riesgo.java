@@ -59,7 +59,7 @@ public class Riesgo {
         this.direccionInmueble = direccionInmueble;
         this.arrendatario = arrendatario;
         this.arrendador = arrendador;
-        this.canonMensual = canonMensual;
+        this.canonMensual = canonMensual.setScale(2, RoundingMode.HALF_UP);
         this.prima = BigDecimal.ZERO;
         this.estado = EstadoRiesgo.ACTIVO;
     }
@@ -70,9 +70,11 @@ public class Riesgo {
         this.prima = canonMensual.multiply(BigDecimal.valueOf(poliza.getMesesVigencia()));
     }
 
-    /** Aplica el incremento del IPC. Los valores en pesos se redondean al peso. */
+    /** Aplica el incremento del IPC. El canon se redondea al peso y se guarda con 2 decimales. */
     void ajustarCanon(BigDecimal factor, int mesesVigencia) {
-        this.canonMensual = canonMensual.multiply(factor).setScale(0, RoundingMode.HALF_UP);
+        this.canonMensual = canonMensual.multiply(factor)
+                .setScale(0, RoundingMode.HALF_UP)
+                .setScale(2, RoundingMode.HALF_UP);
         this.prima = canonMensual.multiply(BigDecimal.valueOf(mesesVigencia));
     }
 
