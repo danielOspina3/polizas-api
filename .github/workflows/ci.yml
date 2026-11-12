@@ -25,3 +25,38 @@ jobs:
         run: |
           chmod +x mvnw
           ./mvnw -B test
+
+      - name: Prueba de humo de los endpoints
+        run: |
+          ./mvnw -B -q -DskipTests package
+          java -jar target/polizas-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
+          for i in $(seq 1 60); do curl -s -o /dev/null http://localhost:8080/polizas && break; sleep 1; done
+
+          revisar() {
+            esperado=$1; shift
+            obtenido=$(curl -s -o respuesta.json -w "%{http_code}" "$@")
+            echo "$esperado esperado, $obtenido obtenido: $*"
+            cat respuesta.json; echo
+            [ "$obtenido" = "$esperado" ]
+          }
+
+          KEY="x-api-key: 123456"
+          revisar 401 http://localhost:8080/polizas
+          revisar 200 -H "$KEY" "http://localhost:8080/polizas?tipo=COLECTIVA&estado=ACTIVA"
+          revisar 200 -H "$KEY" http://localhost:8080/polizas/2/riesgos
+          revisar 200 -X POST -H "$KEY" http://localhost:8080/polizas/1/renovar
+          grep -q '"canonMensual":1578000' respuesta.json
+          revisar 422 -X POST -H "$KEY" -H "Content-Type: application/json" \
+            -d '{"direccionInmueble":"Calle 1","arrendatario":"Juan","arrendador":"Pedro","canonMensual":1000000}' \
+            http://localhost:8080/polizas/1/riesgos
+          revisar 201 -X POST -H "$KEY" -H "Content-Type: application/json" \
+            -d '{"direccionInmueble":"Calle 80 # 20-15","arrendatario":"Sofia Diaz","arrendador":"Luis Castro","canonMensual":2000000}' \
+            http://localhost:8080/polizas/2/riesgos
+          revisar 200 -X POST -H "$KEY" http://localhost:8080/riesgos/2/cancelar
+          revisar 200 -X POST -H "$KEY" http://localhost:8080/polizas/2/cancelar
+          revisar 422 -X POST -H "$KEY" http://localhost:8080/polizas/3/renovar
+          revisar 404 -X POST -H "$KEY" http://localhost:8080/polizas/99/renovar
+
+          sleep 1
+          grep "CORE-MOCK" app.log
+          test "$(grep -c 'CORE-MOCK' app.log)" -ge 4
